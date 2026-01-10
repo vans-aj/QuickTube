@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QuickTube AI Analyzer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            width: 400px;
+            min-height: 500px;
+            margin: 0;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        }
+        .loading {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3b82f6;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .fade-in {
+            animation: fadeIn 0.3s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .tab {
+            cursor: pointer;
+            padding: 0.5rem 1rem;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+        }
+        .tab:hover {
+            background-color: #f3f4f6;
+        }
+        .tab.active {
+            border-bottom-color: #3b82f6;
+            color: #3b82f6;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Header -->
+    <div class="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-4">
+        <h1 class="text-xl font-bold flex items-center gap-2">
+            <span>🎬</span> QuickTube AI
+        </h1>
+        <p class="text-sm text-blue-100 mt-1">Analyze YouTube videos with AI</p>
+    </div>
+
+    <!-- Video Info -->
+    <div id="videoInfo" class="p-4 bg-white border-b hidden">
+        <div class="flex items-start gap-3">
+            <div class="flex-1">
+                <p class="text-xs text-gray-500 mb-1">Current Video</p>
+                <p id="videoTitle" class="text-sm font-medium text-gray-800 line-clamp-2"></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="flex border-b bg-white">
+        <div class="tab active" data-tab="summary">Summary</div>
+        <div class="tab" data-tab="qa">Q&A</div>
+        <div class="tab" data-tab="transcript">Transcript</div>
+    </div>
+
+    <!-- Content Area -->
+    <div class="p-4">
+        <!-- Summary Tab -->
+        <div id="summaryTab" class="tab-content">
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Summary Style</label>
+                <select id="summaryStyle" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <option value="brief">Brief (2-3 sentences)</option>
+                    <option value="detailed" selected>Detailed (3-4 paragraphs)</option>
+                    <option value="bullets">Bullet Points</option>
+                </select>
+            </div>
+            
+            <button id="summarizeBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 px-4 rounded-lg transition-colors">
+                Generate Summary
+            </button>
+            
+            <div id="summaryResult" class="mt-4 hidden">
+                <div class="bg-white border border-gray-200 rounded-lg p-4">
+                    <div class="flex justify-between items-start mb-2">
+                        <h3 class="font-semibold text-gray-800">Summary</h3>
+                        <button id="copySummary" class="text-sm text-blue-600 hover:text-blue-700">Copy</button>
+                    </div>
+                    <div id="summaryText" class="text-sm text-gray-700 whitespace-pre-wrap"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Q&A Tab -->
+        <div id="qaTab" class="tab-content hidden">
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Ask a Question</label>
+                <textarea id="questionInput" 
+                    placeholder="e.g., What are the main topics discussed?"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                    rows="3"></textarea>
+            </div>
+            
+            <button id="askBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 px-4 rounded-lg transition-colors">
+                Ask Question
+            </button>
+            
+            <div id="answerResult" class="mt-4 hidden">
+                <div class="bg-white border border-gray-200 rounded-lg p-4">
+                    <div class="flex justify-between items-start mb-2">
+                        <h3 class="font-semibold text-gray-800">Answer</h3>
+                        <button id="copyAnswer" class="text-sm text-blue-600 hover:text-blue-700">Copy</button>
+                    </div>
+                    <div id="answerText" class="text-sm text-gray-700 whitespace-pre-wrap"></div>
+                </div>
+            </div>
+
+            <div id="qaHistory" class="mt-4 space-y-2"></div>
+        </div>
+
+        <!-- Transcript Tab -->
+        <div id="transcriptTab" class="tab-content hidden">
+            <button id="getTranscriptBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 px-4 rounded-lg transition-colors mb-4">
+                Get Transcript
+            </button>
+            
+            <div id="transcriptResult" class="hidden">
+                <div class="bg-white border border-gray-200 rounded-lg p-4 max-h-96 overflow-y-auto">
+                    <div class="flex justify-between items-start mb-2">
+                        <h3 class="font-semibold text-gray-800">Full Transcript</h3>
+                        <button id="copyTranscript" class="text-sm text-blue-600 hover:text-blue-700">Copy</button>
+                    </div>
+                    <div id="transcriptText" class="text-sm text-gray-700 whitespace-pre-wrap"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loading State -->
+        <div id="loading" class="hidden flex flex-col items-center justify-center py-8">
+            <div class="loading"></div>
+            <p class="text-sm text-gray-600 mt-4">Processing...</p>
+        </div>
+
+        <!-- Error State -->
+        <div id="error" class="hidden mt-4 bg-red-50 border border-red-200 rounded-lg p-4">
+            <p class="text-sm text-red-800"></p>
+        </div>
+
+        <!-- Not on YouTube -->
+        <div id="notYouTube" class="hidden text-center py-8">
+            <p class="text-4xl mb-2">📺</p>
+            <p class="text-gray-600 text-sm">Please open a YouTube video</p>
+        </div>
+    </div>
+
+    <script src="popup.js"></script>
+</body>
+</html>
