@@ -5,7 +5,8 @@
   "description": "AI-powered YouTube video analyzer with instant summaries and Q&A",
   "permissions": [
     "activeTab",
-    "storage"
+    "storage",
+    "scripting"
   ],
   "host_permissions": [
     "https://www.youtube.com/*",
