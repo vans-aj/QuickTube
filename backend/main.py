@@ -3,7 +3,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from dotenv import load_dotenv
 import os
-from rag_pipeline import YouTubeRAG
+import sys
+
+# Try importing rag_pipeline, fallback if there are compatibility issues
+try:
+    from rag_pipeline import YouTubeRAG
+except ImportError as e:
+    print(f"Warning: RAG pipeline import failed ({e}). Using simplified mode.")
+    YouTubeRAG = None
 
 # Load environment variables
 load_dotenv()
@@ -85,6 +92,9 @@ async def health_check():
 async def get_transcript(request: VideoURLRequest):
     """Extract transcript from YouTube video"""
     try:
+        if YouTubeRAG is None:
+            raise HTTPException(status_code=500, detail="RAG pipeline not available")
+            
         openai_key = os.getenv("OPENAI_API_KEY")
         if not openai_key:
             raise HTTPException(status_code=500, detail="OpenAI API key not configured")
@@ -110,6 +120,9 @@ async def get_transcript(request: VideoURLRequest):
 async def summarize_video(request: SummaryRequest):
     """Generate AI summary of YouTube video"""
     try:
+        if YouTubeRAG is None:
+            raise HTTPException(status_code=500, detail="RAG pipeline not available")
+            
         openai_key = os.getenv("OPENAI_API_KEY")
         if not openai_key:
             raise HTTPException(status_code=500, detail="OpenAI API key not configured")
@@ -142,6 +155,9 @@ async def summarize_video(request: SummaryRequest):
 async def ask_question(request: QuestionRequest):
     """Ask a question about the video using RAG"""
     try:
+        if YouTubeRAG is None:
+            raise HTTPException(status_code=500, detail="RAG pipeline not available")
+            
         openai_key = os.getenv("OPENAI_API_KEY")
         if not openai_key:
             raise HTTPException(status_code=500, detail="OpenAI API key not configured")

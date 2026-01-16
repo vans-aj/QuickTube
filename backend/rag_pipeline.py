@@ -14,7 +14,7 @@ class YouTubeRAG:
         os.environ["OPENAI_API_KEY"] = openai_api_key
         
         self.embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
-        self.llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
+        self.llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.7)
         self.vectorstore = None
         self.chain = None
     
@@ -42,11 +42,20 @@ class YouTubeRAG:
         except Exception as e:
             raise Exception(f"Error fetching transcript: {str(e)}")
         
-        transcript = " ".join(item.text for item in data.snippets)
+        # Handle both dict and object formats from the API
+        transcript_parts = []
+        for item in data:
+            if isinstance(item, dict):
+                transcript_parts.append(item['text'])
+            else:
+                # FetchedTranscriptSnippet object
+                transcript_parts.append(item.text)
+        
+        transcript = " ".join(transcript_parts)
         return transcript
     
     def process_transcript(self, transcript: str):
-        """Split transcript and create vector store"""
+        """Split transcript and create vector store with RAG chain"""
         splitter = RecursiveCharacterTextSplitter(
             chunk_size=1000,
             chunk_overlap=200
@@ -56,20 +65,28 @@ class YouTubeRAG:
         self.vectorstore = FAISS.from_documents(chunks, self.embeddings)
         retriever = self.vectorstore.as_retriever(
             search_type="similarity",
-            search_kwargs={"k": 4}
+            search_kwargs={"k": 5}
         )
         
-        # Create RAG chain
+        # Create improved RAG chain prompt
         prompt = PromptTemplate(
             input_variables=["context", "question"],
-            template="""Use the following context from a YouTube video to answer the question.
-If the answer is not found in the context, say "I don't know based on this video".
+            template="""You are a helpful AI assistant analyzing a YouTube video transcript.
 
-Context: {context}
+CONTEXT FROM VIDEO:
+{context}
 
-Question: {question}
+USER QUESTION: {question}
 
-Answer:"""
+INSTRUCTIONS:
+1. Answer based ONLY on the provided context
+2. Be conversational and helpful
+3. If the answer exists in context, provide a clear answer
+4. If NOT found in context, say "I don't know based on this video"
+5. Do NOT make up information
+6. Try to give time stamp if possible
+7. if the query is like thanks or something genral so you can answer
+ANSWER:"""
         )
         
         def format_docs(retrieved_docs):
@@ -90,25 +107,19 @@ Answer:"""
         return self.chain.invoke(question)
     
     def summarize(self, transcript: str, style: str = "detailed") -> str:
-        """Generate summary of the video"""
-        if style == "brief":
-            prompt = f"""Summarize this YouTube video transcript in 2-3 sentences:
-
-{transcript[:3000]}
-
-Brief Summary:"""
-        elif style == "bullets":
-            prompt = f"""Create a bullet-point summary of this YouTube video transcript with 5-7 key points:
-
-{transcript[:3000]}
-
-Key Points:"""
-        else:  # detailed
-            prompt = f"""Provide a detailed summary of this YouTube video transcript in 3-4 paragraphs:
-
-{transcript[:3000]}
-
-Detailed Summary:"""
+        """Generate summary of the video using RAG chain"""
+        # First process the transcript to create RAG chain if not already done
+        if not self.chain:
+            self.process_transcript(transcript)
         
-        response = self.llm.invoke(prompt)
-        return response.content
+        # Create a summarization prompt that uses the RAG chain
+        if style == "brief":
+            summary_question = "Provide a brief 2-3 sentence summary of the main points in this video."
+        elif style == "bullets":
+            summary_question = "List 5-7 key points from this video in bullet format."
+        else:  # detailed
+            summary_question = "Provide a detailed 3-4 paragraph summary of the main topics and key takeaways from this video."
+        
+        # Use the RAG chain to generate summary with context from the video
+        summary = self.chain.invoke(summary_question)
+        return summary
