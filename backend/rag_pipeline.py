@@ -57,15 +57,15 @@ class YouTubeRAG:
     def process_transcript(self, transcript: str):
         """Split transcript and create vector store with RAG chain"""
         splitter = RecursiveCharacterTextSplitter(
-            chunk_size=1000,
-            chunk_overlap=200
+            chunk_size=1500,  # Increased from 1000 for better context
+            chunk_overlap=300  # Increased from 200 for better overlap
         )
         chunks = splitter.create_documents([transcript])
         
         self.vectorstore = FAISS.from_documents(chunks, self.embeddings)
         retriever = self.vectorstore.as_retriever(
             search_type="similarity",
-            search_kwargs={"k": 5}
+            search_kwargs={"k": 8}  # Increased from 5 to 8 for better context
         )
         
         # Create improved RAG chain prompt
@@ -79,13 +79,14 @@ CONTEXT FROM VIDEO:
 USER QUESTION: {question}
 
 INSTRUCTIONS:
-1. Answer based ONLY on the provided context
+1. Analyze the video context carefully to answer the user's question
 2. Be conversational and helpful
-3. If the answer exists in context, provide a clear answer
-4. If NOT found in context, say "I don't know based on this video"
-5. Do NOT make up information
-6. Try to give time stamp if possible
-7. if the query is like thanks or something genral so you can answer
+3. If the answer is clearly in the context, provide a detailed answer with relevant quotes
+4. If the question is about what the video IS about (title/topic), try to infer from context
+5. If NOT found in context, say "I don't know based on this video's transcript"
+6. Do NOT make up information that's not in the context
+7. Answer general questions (hi, thanks, etc) naturally
+8. If relevant, mention approximate timestamps
 ANSWER:"""
         )
         
