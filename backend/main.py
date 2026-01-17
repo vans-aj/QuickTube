@@ -88,67 +88,67 @@ async def health_check():
     return {"status": "healthy"}
 
 
-@app.post("/api/transcript", response_model=TranscriptResponse)
-async def get_transcript(request: VideoURLRequest):
-    """Extract transcript from YouTube video"""
-    try:
-        if YouTubeRAG is None:
-            raise HTTPException(status_code=500, detail="RAG pipeline not available")
+# @app.post("/api/transcript", response_model=TranscriptResponse)
+# async def get_transcript(request: VideoURLRequest):
+#     """Extract transcript from YouTube video"""
+#     try:
+#         if YouTubeRAG is None:
+#             raise HTTPException(status_code=500, detail="RAG pipeline not available")
             
-        openai_key = os.getenv("OPENAI_API_KEY")
-        if not openai_key:
-            raise HTTPException(status_code=500, detail="OpenAI API key not configured")
+#         openai_key = os.getenv("OPENAI_API_KEY")
+#         if not openai_key:
+#             raise HTTPException(status_code=500, detail="OpenAI API key not configured")
         
-        rag = YouTubeRAG(openai_key)
-        video_id = rag.extract_video_id(request.video_url)
-        transcript = rag.get_transcript(video_id)
+#         rag = YouTubeRAG(openai_key)
+#         video_id = rag.extract_video_id(request.video_url)
+#         transcript = rag.get_transcript(video_id)
         
-        # Store RAG instance for this video
-        rag_instances[video_id] = rag
+#         # Store RAG instance for this video
+#         rag_instances[video_id] = rag
         
-        return TranscriptResponse(
-            video_id=video_id,
-            transcript=transcript,
-            success=True
-        )
+#         return TranscriptResponse(
+#             video_id=video_id,
+#             transcript=transcript,
+#             success=True
+#         )
     
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+#     except Exception as e:
+#         raise HTTPException(status_code=400, detail=str(e))
 
 
-@app.post("/api/summarize", response_model=SummaryResponse)
-async def summarize_video(request: SummaryRequest):
-    """Generate AI summary of YouTube video"""
-    try:
-        if YouTubeRAG is None:
-            raise HTTPException(status_code=500, detail="RAG pipeline not available")
+# @app.post("/api/summarize", response_model=SummaryResponse)
+# async def summarize_video(request: SummaryRequest):
+#     """Generate AI summary of YouTube video"""
+#     try:
+#         if YouTubeRAG is None:
+#             raise HTTPException(status_code=500, detail="RAG pipeline not available")
             
-        openai_key = os.getenv("OPENAI_API_KEY")
-        if not openai_key:
-            raise HTTPException(status_code=500, detail="OpenAI API key not configured")
+#         openai_key = os.getenv("OPENAI_API_KEY")
+#         if not openai_key:
+#             raise HTTPException(status_code=500, detail="OpenAI API key not configured")
         
-        rag = YouTubeRAG(openai_key)
-        video_id = rag.extract_video_id(request.video_url)
+#         rag = YouTubeRAG(openai_key)
+#         video_id = rag.extract_video_id(request.video_url)
         
-        # Get transcript
-        transcript = rag.get_transcript(video_id)
+#         # Get transcript
+#         transcript = rag.get_transcript(video_id)
         
-        # Process for RAG (store for future questions)
-        rag.process_transcript(transcript)
-        rag_instances[video_id] = rag
+#         # Process for RAG (store for future questions)
+#         rag.process_transcript(transcript)
+#         rag_instances[video_id] = rag
         
-        # Generate summary
-        summary = rag.summarize(transcript, style=request.style)
+#         # Generate summary
+#         summary = rag.summarize(transcript, style=request.style)
         
-        return SummaryResponse(
-            video_id=video_id,
-            summary=summary,
-            style=request.style,
-            success=True
-        )
-    
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+#         return SummaryResponse(
+#             video_id=video_id,
+#             summary=summary,
+#             style=request.style,
+#             success=True
+#         )
+
+    # except Exception as e:
+    #     raise HTTPException(status_code=400, detail=str(e))
 
 
 @app.post("/api/ask", response_model=AnswerResponse)
